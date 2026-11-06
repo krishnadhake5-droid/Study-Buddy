@@ -1,17 +1,25 @@
 package com.example
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -19,25 +27,35 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -81,6 +99,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 private const val SESSION_PREFS = "study_buddy_mobile_session_prefs"
 private const val KEY_VERIFIED_MOBILE = "verified_mobile_number"
@@ -221,6 +240,7 @@ fun AuthenticatedStudyBuddyApp(
 
   var currentTab by rememberSaveable { mutableIntStateOf(0) }
   var showAiAssistantSheet by rememberSaveable { mutableStateOf(false) }
+  var showWebAndApkHubDialog by rememberSaveable { mutableStateOf(false) }
 
   BackHandler(enabled = currentTab != 0) {
     currentTab = 0
@@ -257,105 +277,162 @@ fun AuthenticatedStudyBuddyApp(
         val appLimits = (appLimitsState as? DataUiState.Success)?.data.orEmpty()
         val studyGroups = (studyGroupsState as? DataUiState.Success)?.data.orEmpty()
 
-        Scaffold(
-          contentWindowInsets = WindowInsets.safeDrawing,
-          snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-          topBar = {
-            TopAppBar(
-              title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                  Text(
-                    text = "Study Buddy",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+          val isExpandedDesktopLayout = maxWidth >= 600.dp
+
+          Scaffold(
+            contentWindowInsets = WindowInsets.safeDrawing,
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            topBar = {
+              TopAppBar(
+                title = {
+                  Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                      text = "Study Buddy",
+                      style = MaterialTheme.typography.titleLarge,
+                      fontWeight = FontWeight.Bold,
+                    )
+                  }
+                },
+                actions = {
+                  IconButton(
+                    onClick = { showWebAndApkHubDialog = true },
+                    modifier = Modifier.testTag("top_bar_web_apk_hub_button"),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Default.CloudDownload,
+                      contentDescription = "Web, Desktop & APK Download Hub",
+                      tint = MaterialTheme.colorScheme.secondary,
+                    )
+                  }
+                  IconButton(
+                    onClick = { showAiAssistantSheet = true },
+                    modifier = Modifier.testTag("top_bar_ai_button"),
+                  ) {
+                    Icon(
+                      imageVector = Icons.Default.AutoAwesome,
+                      contentDescription = "Open AI Study Assistant",
+                      tint = MaterialTheme.colorScheme.primary,
+                    )
+                  }
+                  IconButton(
+                    onClick = onToggleDarkTheme,
+                    modifier = Modifier.testTag("toggle_theme_button"),
+                  ) {
+                    Icon(
+                      imageVector =
+                        if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                      contentDescription = "Toggle light/dark mode",
+                    )
+                  }
+                },
+                colors =
+                  TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                  ),
+              )
+            },
+            floatingActionButton = {
+              ExtendedFloatingActionButton(
+                onClick = { showAiAssistantSheet = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.testTag("fab_ai_assistant"),
+              ) {
+                Icon(
+                  imageVector = Icons.Default.AutoAwesome,
+                  contentDescription = null,
+                  modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("AI Study Buddy", fontWeight = FontWeight.SemiBold)
+              }
+            },
+            bottomBar = {
+              if (!isExpandedDesktopLayout) {
+                NavigationBar {
+                  NavigationBarItem(
+                    selected = currentTab == 0,
+                    onClick = { currentTab = 0 },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                    label = { Text("Home") },
+                    modifier = Modifier.testTag("nav_home"),
+                  )
+                  NavigationBarItem(
+                    selected = currentTab == 1,
+                    onClick = { currentTab = 1 },
+                    icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Planner") },
+                    label = { Text("Planner") },
+                    modifier = Modifier.testTag("nav_planner"),
+                  )
+                  NavigationBarItem(
+                    selected = currentTab == 2,
+                    onClick = { currentTab = 2 },
+                    icon = { Icon(Icons.Default.MenuBook, contentDescription = "Syllabus") },
+                    label = { Text("Syllabus") },
+                    modifier = Modifier.testTag("nav_syllabus"),
+                  )
+                  NavigationBarItem(
+                    selected = currentTab == 3,
+                    onClick = { currentTab = 3 },
+                    icon = { Icon(Icons.Default.Timer, contentDescription = "Focus") },
+                    label = { Text("Focus") },
+                    modifier = Modifier.testTag("nav_focus"),
+                  )
+                  NavigationBarItem(
+                    selected = currentTab == 4,
+                    onClick = { currentTab = 4 },
+                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                    label = { Text("Profile") },
+                    modifier = Modifier.testTag("nav_profile"),
                   )
                 }
-              },
-              actions = {
-                IconButton(
-                  onClick = { showAiAssistantSheet = true },
-                  modifier = Modifier.testTag("top_bar_ai_button"),
-                ) {
-                  Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "Open AI Study Assistant",
-                    tint = MaterialTheme.colorScheme.primary,
+              }
+            },
+          ) { innerPadding ->
+            Row(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+              if (isExpandedDesktopLayout) {
+                NavigationRail(modifier = Modifier.fillMaxHeight()) {
+                  Spacer(modifier = Modifier.height(8.dp))
+                  NavigationRailItem(
+                    selected = currentTab == 0,
+                    onClick = { currentTab = 0 },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                    label = { Text("Home") },
+                    modifier = Modifier.testTag("rail_home"),
+                  )
+                  NavigationRailItem(
+                    selected = currentTab == 1,
+                    onClick = { currentTab = 1 },
+                    icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Planner") },
+                    label = { Text("Planner") },
+                    modifier = Modifier.testTag("rail_planner"),
+                  )
+                  NavigationRailItem(
+                    selected = currentTab == 2,
+                    onClick = { currentTab = 2 },
+                    icon = { Icon(Icons.Default.MenuBook, contentDescription = "Syllabus") },
+                    label = { Text("Syllabus") },
+                    modifier = Modifier.testTag("rail_syllabus"),
+                  )
+                  NavigationRailItem(
+                    selected = currentTab == 3,
+                    onClick = { currentTab = 3 },
+                    icon = { Icon(Icons.Default.Timer, contentDescription = "Focus") },
+                    label = { Text("Focus") },
+                    modifier = Modifier.testTag("rail_focus"),
+                  )
+                  NavigationRailItem(
+                    selected = currentTab == 4,
+                    onClick = { currentTab = 4 },
+                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                    label = { Text("Profile") },
+                    modifier = Modifier.testTag("rail_profile"),
                   )
                 }
-                IconButton(
-                  onClick = onToggleDarkTheme,
-                  modifier = Modifier.testTag("toggle_theme_button"),
-                ) {
-                  Icon(
-                    imageVector =
-                      if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                    contentDescription = "Toggle light/dark mode",
-                  )
-                }
-              },
-              colors =
-                TopAppBarDefaults.topAppBarColors(
-                  containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-          },
-          floatingActionButton = {
-            ExtendedFloatingActionButton(
-              onClick = { showAiAssistantSheet = true },
-              containerColor = MaterialTheme.colorScheme.primary,
-              contentColor = MaterialTheme.colorScheme.onPrimary,
-              modifier = Modifier.testTag("fab_ai_assistant"),
-            ) {
-              Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-              )
-              Spacer(modifier = Modifier.width(8.dp))
-              Text("AI Study Buddy", fontWeight = FontWeight.SemiBold)
-            }
-          },
-          bottomBar = {
-            NavigationBar {
-              NavigationBarItem(
-                selected = currentTab == 0,
-                onClick = { currentTab = 0 },
-                icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                label = { Text("Home") },
-                modifier = Modifier.testTag("nav_home"),
-              )
-              NavigationBarItem(
-                selected = currentTab == 1,
-                onClick = { currentTab = 1 },
-                icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Planner") },
-                label = { Text("Planner") },
-                modifier = Modifier.testTag("nav_planner"),
-              )
-              NavigationBarItem(
-                selected = currentTab == 2,
-                onClick = { currentTab = 2 },
-                icon = { Icon(Icons.Default.MenuBook, contentDescription = "Syllabus") },
-                label = { Text("Syllabus") },
-                modifier = Modifier.testTag("nav_syllabus"),
-              )
-              NavigationBarItem(
-                selected = currentTab == 3,
-                onClick = { currentTab = 3 },
-                icon = { Icon(Icons.Default.Timer, contentDescription = "Focus") },
-                label = { Text("Focus") },
-                modifier = Modifier.testTag("nav_focus"),
-              )
-              NavigationBarItem(
-                selected = currentTab == 4,
-                onClick = { currentTab = 4 },
-                icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                label = { Text("Profile") },
-                modifier = Modifier.testTag("nav_profile"),
-              )
-            }
-          },
-        ) { innerPadding ->
-          Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+              }
+
+              Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
             when (currentTab) {
               0 ->
                 HomeDashboardScreen(
@@ -451,7 +528,37 @@ fun AuthenticatedStudyBuddyApp(
                   },
                 )
             }
+              }
+            }
           }
+        }
+
+        if (showWebAndApkHubDialog) {
+          WebAndApkHubDialog(
+            onDismiss = { showWebAndApkHubDialog = false },
+            onCopyGuide = { text ->
+              val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+              clipboard.setPrimaryClip(ClipData.newPlainText("Study Buddy Vercel & APK Guide", text))
+              scope.launch {
+                snackbarHostState.showSnackbar("Copied Vercel & APK setup instructions to clipboard!")
+              }
+            },
+            onShareApp = {
+              val shareIntent =
+                Intent(Intent.ACTION_SEND).apply {
+                  type = "text/plain"
+                  putExtra(
+                    Intent.EXTRA_SUBJECT,
+                    "Study Buddy — Web, Desktop & Android APK",
+                  )
+                  putExtra(
+                    Intent.EXTRA_TEXT,
+                    "Study Buddy is ready for Desktop, Laptop, Mobile Web (Vercel PWA) & Android APK! Tagline: Study Smarter. Stay Focused. Achieve More.",
+                  )
+                }
+              context.startActivity(Intent.createChooser(shareIntent, "Share Study Buddy"))
+            },
+          )
         }
 
         if (showAiAssistantSheet) {
@@ -474,3 +581,105 @@ fun AuthenticatedStudyBuddyApp(
     }
   }
 }
+
+@Composable
+private fun WebAndApkHubDialog(
+  onDismiss: () -> Unit,
+  onCopyGuide: (String) -> Unit,
+  onShareApp: () -> Unit,
+) {
+  val guideText =
+    """
+    Study Buddy — Free Vercel Website (Desktop/Laptop PWA) + Android APK Guide:
+    1. Download APK Directly: In AI Studio, click Settings (top-right) -> Generate APK / Export ZIP.
+    2. Deploy Free on Vercel (Desktop/Laptop/Mobile Web App):
+       - Push this project to GitHub from AI Studio (or run `npx vercel --prod`).
+       - Import the repo at https://vercel.com/new (Free Hobby Plan).
+       - `vercel.json` & `/public/index.html` are pre-configured! Your live site works on all Desktops, Laptops & Phones as an installable PWA + APK download portal.
+    """.trimIndent()
+
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = {
+      Text(
+        text = "Desktop/Laptop Website (Vercel) & APK Download",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+      )
+    },
+    text = {
+      Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Card(
+          colors =
+            CardDefaults.cardColors(
+              containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+            ),
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+              text = "1. Download Android APK (.apk)",
+              style = MaterialTheme.typography.labelLarge,
+              fontWeight = FontWeight.Bold,
+            )
+            Text(
+              text = "Use the AI Studio Settings menu (top-right) → Generate APK, or push to GitHub where `.github/workflows/android-apk.yml` builds `StudyBuddy.apk` automatically.",
+              style = MaterialTheme.typography.bodySmall,
+            )
+          }
+        }
+
+        Card(
+          colors =
+            CardDefaults.cardColors(
+              containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+            ),
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+              text = "2. Free Vercel Website for Desktops & Laptops",
+              style = MaterialTheme.typography.labelLarge,
+              fontWeight = FontWeight.Bold,
+            )
+            Text(
+              text = "This repository now includes `/vercel.json`, `/public/index.html`, and `/public/manifest.json`. Push to GitHub and connect to Vercel (Free tier) to get a full Desktop/Laptop Web App + PWA with Mobile OTP login and a 1-click APK download button.",
+              style = MaterialTheme.typography.bodySmall,
+            )
+          }
+        }
+
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          FilledTonalButton(
+            onClick = { onCopyGuide(guideText) },
+            modifier = Modifier.weight(1f),
+          ) {
+            Text("Copy Vercel Steps")
+          }
+          FilledTonalButton(
+            onClick = onShareApp,
+            modifier = Modifier.weight(1f),
+          ) {
+            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Share")
+          }
+        }
+      }
+    },
+    confirmButton = {
+      Button(onClick = onDismiss) {
+        Text("Done")
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) {
+        Text("Close")
+      }
+    },
+  )
+}
+

@@ -852,6 +852,32 @@ private fun StudentProfileSettingsSection(
     }
 
     item {
+      Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors =
+          CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
+          ),
+      ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+          Text(
+            text = "Desktop, Laptop & Mobile Web App (Vercel + APK)",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+          )
+          Text(
+            text = "• Free Vercel Website & PWA: Configured via `/vercel.json`, `/public/index.html`, and `/public/manifest.json` for Desktops, Laptops, and Mobile browsers.",
+            style = MaterialTheme.typography.bodySmall,
+          )
+          Text(
+            text = "• Downloadable Android APK: Click the Cloud Download icon in the top bar or use AI Studio Settings → Generate APK / Push to GitHub.",
+            style = MaterialTheme.typography.bodySmall,
+          )
+        }
+      }
+    }
+
+    item {
       OutlinedButton(
         onClick = onSignOut,
         modifier = Modifier.fillMaxWidth().height(50.dp).testTag("sign_out_button"),

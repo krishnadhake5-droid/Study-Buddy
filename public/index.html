@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study Buddy — AI Student Productivity & Smart Learning Companion (Web, Desktop & APK)</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2563EB" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    h1, h2, h3, .font-display { font-family: 'Space Grotesk', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Top Universal Download & Desktop/Laptop PWA Banner -->
+  <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-teal-600 text-white px-4 py-2.5 text-sm shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 text-xs font-bold uppercase tracking-wider bg-white/20 rounded-full">Desktop • Laptop • Android</span>
+        <span class="font-medium">Study Buddy runs directly in your Desktop/Laptop browser or as a downloadable Android APK.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="pwaInstallBtn" onclick="installDesktopPwa()" class="hidden bg-white/20 hover:bg-white/30 text-white font-semibold px-3 py-1 rounded-lg text-xs transition">
+          💻 Install Desktop / Laptop App
+        </button>
+        <a href="/StudyBuddy.apk" download="StudyBuddy.apk" onclick="handleApkDownload(event)" class="bg-white text-blue-700 hover:bg-blue-50 font-bold px-3.5 py-1 rounded-lg text-xs shadow-sm transition flex items-center gap-1.5">
+          <span>📲 Download Android APK</span>
+        </a>
+        <button onclick="exportStudyDataJson()" class="bg-teal-500/30 hover:bg-teal-500/50 border border-white/30 text-white font-semibold px-3 py-1 rounded-lg text-xs transition">
+          ⬇️ Export Backup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTH SCREEN (Mobile Number + 6-Digit OTP) -->
+  <div id="authView" class="flex-1 flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden">
+      <div class="bg-gradient-to-br from-blue-600 via-indigo-700 to-slate-900 p-6 text-white">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 backdrop-blur-sm mb-3">
+          ✨ AI-Powered Learning Companion
+        </span>
+        <h1 class="text-3xl font-bold font-display">Study Buddy</h1>
+        <p class="text-blue-100 text-sm mt-1">Study Smarter. Stay Focused. Achieve More.</p>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xl">
+            📱
+          </div>
+          <div>
+            <h2 class="text-lg font-bold">Student Mobile Verification</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Sign in or register using your mobile number and 6-digit OTP</p>
+          </div>
+        </div>
+
+        <!-- Step 1: Enter Mobile Number -->
+        <div id="otpStepPhone" class="space-y-3">
+          <div class="flex gap-2">
+            <div class="w-24">
+              <label class="block text-xs font-semibold text-slate-500 mb-1">Code</label>
+              <input id="countryCodeInput" type="text" value="+91" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent font-semibold text-sm" />
+            </div>
+            <div class="flex-1">
+              <label class="block text-xs font-semibold text-slate-500 mb-1">Mobile Number</label>
+              <input id="phoneInput" type="tel" value="8329610976" placeholder="9876543210" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent font-semibold text-sm" />
+            </div>
+          </div>
+          <button onclick="sendWebMobileOtp()" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition">
+            💬 Get OTP on Mobile
+          </button>
+        </div>
+
+        <!-- Step 2: Enter 6-Digit OTP -->
+        <div id="otpStepVerify" class="hidden space-y-3">
+          <div id="instantOtpBanner" class="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">Instant Verification OTP</div>
+              <div id="generatedOtpDisplay" class="text-lg font-bold font-display text-slate-900 dark:text-white">SMS OTP Code: ------</div>
+              <div class="text-[11px] text-slate-500">Auto-generated for instant Desktop/Web & Emulator login</div>
+            </div>
+            <button onclick="autoFillWebOtp()" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700">
+              Auto-Fill
+            </button>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">6-Digit OTP Code</label>
+            <input id="otpCodeInput" type="text" maxlength="6" placeholder="123456" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent font-bold tracking-widest text-center text-lg" />
+          </div>
+
+          <button onclick="verifyWebOtpAndLogin()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition">
+            ✅ Verify & Continue to Study Buddy
+          </button>
+          <button onclick="resetOtpStep()" class="w-full py-2 text-xs text-slate-500 hover:text-slate-700 font-semibold">
+            ← Change Mobile Number / Resend OTP
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN DESKTOP / LAPTOP / MOBILE APP WORKSPACE -->
+  <div id="appView" class="hidden flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto">
+
+    <!-- Desktop & Laptop Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-white dark:bg-slate-900 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0">
+      <div>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-xl font-bold font-display text-blue-600 dark:text-blue-400">Study Buddy</h1>
+            <p id="verifiedPhoneBadge" class="text-xs text-slate-500 font-medium">+91 8329610976</p>
+          </div>
+          <button onclick="toggleDarkMode()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm" title="Toggle Theme">🌓</button>
+        </div>
+
+        <nav class="flex md:flex-col gap-1.5 overflow-x-auto pb-2 md:pb-0">
+          <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="tab-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm bg-blue-600 text-white whitespace-nowrap">
+            <span>🏠</span> <span>Today's Goals</span>
+          </button>
+          <button onclick="switchTab('planner')" id="tabBtn-planner" class="tab-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap">
+            <span>📅</span> <span>Daily Timetable</span>
+          </button>
+          <button onclick="switchTab('syllabus')" id="tabBtn-syllabus" class="tab-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap">
+            <span>📚</span> <span>Syllabus Planner</span>
+          </button>
+          <button onclick="switchTab('focus')" id="tabBtn-focus" class="tab-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap">
+            <span>⏱️</span> <span>Focus & App Limits</span>
+          </button>
+          <button onclick="switchTab('ai')" id="tabBtn-ai" class="tab-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap">
+            <span>✨</span> <span>AI Study Assistant</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="hidden md:block pt-6 border-t border-slate-200 dark:border-slate-800 space-y-2">
+        <div class="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800/70 text-xs space-y-1">
+          <div class="font-bold text-slate-700 dark:text-slate-200">🔥 5-Day Study Streak</div>
+          <div class="text-slate-500">"Small progress every day leads to big achievements."</div>
+        </div>
+        <button onclick="logoutWeb()" class="w-full py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto space-y-6">
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="space-y-6">
+        <div class="bg-gradient-to-r from-blue-600 via-indigo-700 to-slate-900 rounded-3xl p-6 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-white/15">B.Tech CS & AI • Semester 5</span>
+            <h2 class="text-2xl md:text-3xl font-bold font-display mt-2">Good Morning, Scholar! 👋</h2>
+            <p class="text-blue-100 text-sm mt-1">Let's make today productive. Your personalized routine balances study, breaks, and rest.</p>
+          </div>
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 min-w-[210px]">
+            <div class="text-xs uppercase tracking-wider text-blue-200 font-semibold">Daily Completion</div>
+            <div id="goalProgressPct" class="text-3xl font-bold font-display mt-1">60%</div>
+            <div id="goalProgressText" class="text-xs text-blue-100 mt-0.5">3 of 5 academic goals done</div>
+          </div>
+        </div>
+
+        <!-- Quick Add Goal + Today's Academic Goals -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-bold">Today's Academic Goals</h3>
+                <p class="text-xs text-slate-500">Check off tasks or launch a 25m Pomodoro Focus session</p>
+              </div>
+            </div>
+
+            <!-- Add Goal Form -->
+            <div class="flex flex-wrap gap-2 pt-1">
+              <input id="newGoalTitle" type="text" placeholder="Add a study goal (e.g., Revise AI Unit 2)..." class="flex-1 min-w-[200px] px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent text-sm" />
+              <input id="newGoalSubject" type="text" placeholder="Subject" value="Artificial Intelligence" class="w-40 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent text-sm" />
+              <button onclick="addDashboardGoal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm">
+                + Add Goal
+              </button>
+            </div>
+
+            <div id="goalsListContainer" class="space-y-3"></div>
+          </div>
+
+          <!-- Right Column: Exam Countdown & Smart AI Personalization -->
+          <div class="space-y-6">
+            <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+              <h3 class="text-base font-bold">⏳ Upcoming Exam Countdown</h3>
+              <div class="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-sm">AI Mid-Semester Exam</div>
+                  <div class="text-xs text-slate-500">Units 1–3 • Nov 20</div>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg bg-red-600 text-white font-bold text-xs">14 Days</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-sm">Engineering Math Quiz</div>
+                  <div class="text-xs text-slate-500">Laplace & Fourier • Nov 13</div>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg bg-amber-600 text-white font-bold text-xs">7 Days</span>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-teal-600 to-emerald-700 rounded-3xl p-6 text-white shadow-sm space-y-2">
+              <div class="text-xs font-bold uppercase tracking-wider text-teal-100">🧠 Smart Personalization Engine</div>
+              <div class="font-bold text-base">Peak Focus Window: 5:00 PM – 8:00 PM</div>
+              <p class="text-xs text-teal-50 leading-relaxed">
+                Based on your onboarding survey, difficult subjects (Artificial Intelligence & Engineering Mathematics) are scheduled right after your afternoon refreshment break.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: SMART DAILY TIMETABLE -->
+      <section id="tab-planner" class="hidden space-y-6">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-xl font-bold">Balanced Daily Routine & Dynamic Rescheduler</h2>
+              <p class="text-xs text-slate-500">Realistic schedule including college hours, meals, study sessions, breaks, and 8h sleep</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              Zero Overload Guaranteed
+            </span>
+          </div>
+          <div id="routineListContainer" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: SYLLABUS PLANNER -->
+      <section id="tab-syllabus" class="hidden space-y-6">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-xl font-bold">Smart Syllabus Planner & Topic Extractor</h2>
+              <p class="text-xs text-slate-500">Click any topic badge to cycle: Pending → Completed → Needs Revision → Difficult</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/60 space-y-3">
+            <div class="text-xs font-bold uppercase text-blue-600 dark:text-blue-400">✨ Paste Syllabus Lines to Auto-Extract Topics</div>
+            <div class="flex flex-col md:flex-row gap-2">
+              <input id="syllabusSubjectInput" type="text" value="Artificial Intelligence" placeholder="Subject Name" class="md:w-56 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm" />
+              <input id="syllabusRawInput" type="text" placeholder="Paste comma-separated topics (e.g. Neural Networks, Backpropagation, CNNs)" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm" />
+              <button onclick="extractSyllabusTopicsWeb()" class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm">
+                Extract Topics
+              </button>
+            </div>
+          </div>
+
+          <div id="syllabusListContainer" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: FOCUS TIMER & APP LIMITER -->
+      <section id="tab-focus" class="hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Pomodoro / Deep Focus Timer -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm text-center space-y-5">
+            <div class="flex justify-center gap-2">
+              <button onclick="setWebTimer(25, 'Pomodoro Focus (25m)')" class="px-3 py-1.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold">25m Focus</button>
+              <button onclick="setWebTimer(50, 'Deep Study (50m)')" class="px-3 py-1.5 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-bold">50m Deep Study</button>
+              <button onclick="setWebTimer(5, 'Refreshment Break (5m)')" class="px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-bold">5m Break</button>
+              <button onclick="setWebTimer(25, 'Power Nap (25m)')" class="px-3 py-1.5 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-xs font-bold">25m Power Nap</button>
+            </div>
+
+            <div>
+              <div id="timerModeTitle" class="text-sm font-bold text-slate-500">Pomodoro Focus (25m)</div>
+              <div id="timerDisplay" class="text-6xl font-bold font-display text-blue-600 dark:text-blue-400 my-3">25:00</div>
+              <p class="text-xs text-slate-500">Stay hydrated, stretch your shoulders, and silence notifications.</p>
+            </div>
+
+            <div class="flex justify-center gap-3">
+              <button onclick="toggleWebTimer()" id="timerStartBtn" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow">
+                ▶ Start Focus
+              </button>
+              <button onclick="resetWebTimer()" class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-sm">
+                ↺ Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Digital Distraction App Limiter -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+            <h3 class="text-lg font-bold">🛡️ Smart Distraction App Limiter</h3>
+            <p class="text-xs text-slate-500">Blocks entertainment apps during active study hours (5:00 PM – 9:30 PM)</p>
+
+            <div class="space-y-3">
+              <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 space-y-1.5">
+                <div class="flex justify-between text-sm font-bold">
+                  <span>📸 Instagram</span>
+                  <span class="text-amber-600">38m / 45m limit (Warning)</span>
+                </div>
+                <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div class="bg-amber-500 h-full" style="width: 84%"></div>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 space-y-1.5">
+                <div class="flex justify-between text-sm font-bold">
+                  <span>▶️ YouTube</span>
+                  <span class="text-emerald-600">30m / 60m limit</span>
+                </div>
+                <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div class="bg-emerald-500 h-full" style="width: 50%"></div>
+                </div>
+              </div>
+
+              <div class="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 space-y-1.5">
+                <div class="flex justify-between text-sm font-bold">
+                  <span>🎮 Mobile Games</span>
+                  <span class="text-red-600">45m / 40m (Locked for Study)</span>
+                </div>
+                <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div class="bg-red-600 h-full" style="width: 100%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: AI STUDY ASSISTANT -->
+      <section id="tab-ai" class="hidden space-y-6">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+          <h2 class="text-xl font-bold">✨ AI Study Buddy Assistant</h2>
+          <p class="text-xs text-slate-500">Choose Understand Mode, Practice Mode (MCQs & Viva), or Exam Revision Cheat-Sheet Mode</p>
+
+          <div class="flex flex-wrap gap-2">
+            <button onclick="setAiMode('UNDERSTAND')" id="aiMode-UNDERSTAND" class="ai-mode-btn px-3.5 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold">1. Understand Concept</button>
+            <button onclick="setAiMode('PRACTICE')" id="aiMode-PRACTICE" class="ai-mode-btn px-3.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold">2. Practice Questions & MCQs</button>
+            <button onclick="setAiMode('REVISION')" id="aiMode-REVISION" class="ai-mode-btn px-3.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold">3. Quick Exam Revision Notes</button>
+          </div>
+
+          <div class="flex gap-2">
+            <input id="aiPromptInput" type="text" value="A* Search Algorithm & Heuristic Admissibility" placeholder="Enter any topic or question..." class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent text-sm" />
+            <button onclick="generateAiStudyGuide()" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm">
+              Ask Study Buddy
+            </button>
+          </div>
+
+          <div id="aiResponseBox" class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-sm leading-relaxed whitespace-pre-line"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- APK Download / Build Instructions Modal -->
+  <div id="apkModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold">📲 Download Study Buddy Android APK</h3>
+        <button onclick="closeApkModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+        You are currently using the <strong>Study Buddy Desktop / Laptop / Mobile Web App</strong>. To get the native Android APK file:
+      </p>
+      <ol class="text-xs space-y-2 text-slate-600 dark:text-slate-300 list-decimal list-inside bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl">
+        <li><strong>In Google AI Studio:</strong> Click the <strong>Settings / Export (⚙️)</strong> menu in the top-right corner and select <strong>Generate APK</strong> or <strong>Download ZIP</strong>.</li>
+        <li><strong>On GitHub / Vercel:</strong> When you push this repository to GitHub, the included GitHub Actions workflow (<code>.github/workflows/android-apk.yml</code>) automatically compiles <code>StudyBuddy.apk</code> and attaches it to your Releases & Vercel <code>/public/StudyBuddy.apk</code> path.</li>
+        <li><strong>Install as Desktop/Phone App right now:</strong> Click your browser's <strong>"Install Study Buddy"</strong> icon in the address bar to install this Web App directly onto your Windows, Mac, Linux laptop, or phone!</li>
+      </ol>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeApkModal()" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Service Worker Registration for Desktop/Laptop PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('pwaInstallBtn').classList.remove('hidden');
+    });
+
+    async function installDesktopPwa() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      }
+    }
+
+    async function handleApkDownload(e) {
+      try {
+        const res = await fetch('/StudyBuddy.apk', { method: 'HEAD' });
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok || contentType.includes('text/html')) {
+          e.preventDefault();
+          document.getElementById('apkModal').classList.remove('hidden');
+        }
+      } catch (_) {
+        e.preventDefault();
+        document.getElementById('apkModal').classList.remove('hidden');
+      }
+    }
+
+    function closeApkModal() {
+      document.getElementById('apkModal').classList.add('hidden');
+    }
+
+    // Mobile OTP State
+    let generatedOtp = '';
+    function sendWebMobileOtp() {
+      const code = document.getElementById('countryCodeInput').value.trim() || '+91';
+      const phone = document.getElementById('phoneInput').value.trim();
+      if (phone.replace(/\D/g, '').length < 7) {
+        alert('Please enter a valid mobile number.');
+        return;
+      }
+      generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+      document.getElementById('generatedOtpDisplay').textContent = 'SMS OTP Code: ' + generatedOtp;
+      document.getElementById('otpStepPhone').classList.add('hidden');
+      document.getElementById('otpStepVerify').classList.remove('hidden');
+    }
+
+    function autoFillWebOtp() {
+      document.getElementById('otpCodeInput').value = generatedOtp;
+    }
+
+    function resetOtpStep() {
+      document.getElementById('otpStepVerify').classList.add('hidden');
+      document.getElementById('otpStepPhone').classList.remove('hidden');
+    }
+
+    function verifyWebOtpAndLogin() {
+      const entered = document.getElementById('otpCodeInput').value.trim();
+      if (entered.length !== 6) {
+        alert('Please enter the 6-digit OTP code.');
+        return;
+      }
+      const fullPhone = (document.getElementById('countryCodeInput').value.trim() + ' ' + document.getElementById('phoneInput').value.trim()).trim();
+      localStorage.setItem('study_buddy_verified_mobile', fullPhone);
+      showAuthenticatedWorkspace(fullPhone);
+    }
+
+    function logoutWeb() {
+      localStorage.removeItem('study_buddy_verified_mobile');
+      document.getElementById('appView').classList.add('hidden');
+      document.getElementById('authView').classList.remove('hidden');
+      resetOtpStep();
+    }
+
+    // Default Study Data
+    const defaultGoals = [
+      { id: 1, title: 'Complete Artificial Intelligence Unit 2: A* & Heuristic Search', subject: 'Artificial Intelligence', duration: '45m', priority: 'High', completed: true },
+      { id: 2, title: 'Solve 15 Practice Problems on Laplace Transforms', subject: 'Engineering Mathematics', duration: '45m', priority: 'High', completed: true },
+      { id: 3, title: 'Revise OS Deadlock Avoidance (Banker\'s Algorithm)', subject: 'Operating Systems', duration: '35m', priority: 'Medium', completed: true },
+      { id: 4, title: 'Complete DBMS Normalization Lab Assignment', subject: 'Database Systems', duration: '40m', priority: 'High', completed: false },
+      { id: 5, title: '20-Minute Active Recall Flashcard Review before Sleep', subject: 'All Subjects', duration: '20m', priority: 'Medium', completed: false }
+    ];
+
+    const defaultRoutine = [
+      { id: 101, slot: '06:30 AM – 08:30 AM', title: 'Wake Up, Hydration & Morning Revision', category: 'Routine', completed: true },
+      { id: 102, slot: '09:00 AM – 04:00 PM', title: 'College Classes & Lab Sessions', category: 'College', completed: true },
+      { id: 103, slot: '04:00 PM – 05:00 PM', title: 'Commute Home + 25m Power Nap & Tea Break', category: 'Rest', completed: true },
+      { id: 104, slot: '05:00 PM – 06:30 PM', title: 'Deep Study Session 1: Artificial Intelligence (Difficult Subject)', category: 'Study', completed: false },
+      { id: 105, slot: '07:00 PM – 08:15 PM', title: 'Study Session 2: Engineering Mathematics Practice Problems', category: 'Study', completed: false },
+      { id: 106, slot: '09:15 PM – 10:15 PM', title: 'Homework, Assignments & Quick Summary Notes', category: 'Assignment', completed: false },
+      { id: 107, slot: '11:00 PM – 06:30 AM', title: 'Protected 7.5h Nighttime Sleep (Screen-Free)', category: 'Sleep', completed: false }
+    ];
+
+    const defaultSyllabus = [
+      { id: 201, subject: 'Artificial Intelligence', unit: 'Unit 1', topic: 'Uninformed vs Informed Search (BFS, DFS, A*)', status: 'COMPLETED' },
+      { id: 202, subject: 'Artificial Intelligence', unit: 'Unit 2', topic: 'Minimax & Alpha-Beta Pruning in Game Trees', status: 'REVISION' },
+      { id: 203, subject: 'Engineering Mathematics', unit: 'Unit 2', topic: 'Convolution Theorem & Inverse Laplace Transforms', status: 'DIFFICULT' },
+      { id: 204, subject: 'Operating Systems', unit: 'Unit 3', topic: 'Virtual Memory, Page Replacement & Thrashing', status: 'PENDING' }
+    ];
+
+    let goals = JSON.parse(localStorage.getItem('sb_web_goals') || 'null') || defaultGoals;
+    let routine = JSON.parse(localStorage.getItem('sb_web_routine') || 'null') || defaultRoutine;
+    let syllabus = JSON.parse(localStorage.getItem('sb_web_syllabus') || 'null') || defaultSyllabus;
+
+    function saveState() {
+      localStorage.setItem('sb_web_goals', JSON.stringify(goals));
+      localStorage.setItem('sb_web_routine', JSON.stringify(routine));
+      localStorage.setItem('sb_web_syllabus', JSON.stringify(syllabus));
+    }
+
+    function renderGoals() {
+      const container = document.getElementById('goalsListContainer');
+      const done = goals.filter(g => g.completed).length;
+      const pct = goals.length ? Math.round((done * 100) / goals.length) : 0;
+      document.getElementById('goalProgressPct').textContent = pct + '%';
+      document.getElementById('goalProgressText').textContent = `${done} of ${goals.length} academic goals done`;
+
+      container.innerHTML = goals.map(g => `
+        <div class="p-4 rounded-2xl border ${g.completed ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" ${g.completed ? 'checked' : ''} onchange="toggleGoal(${g.id})" class="w-5 h-5 rounded accent-blue-600 cursor-pointer" />
+            <div>
+              <div class="font-bold text-sm ${g.completed ? 'line-through text-slate-400' : ''}">${g.title}</div>
+              <div class="text-xs text-slate-500">${g.subject} • ${g.duration} • Priority: ${g.priority}</div>
+            </div>
+          </div>
+          <button onclick="startGoalFocus('${g.title.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold shrink-0">
+            ⏱️ Focus
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function toggleGoal(id) {
+      goals = goals.map(g => g.id === id ? { ...g, completed: !g.completed } : g);
+      saveState();
+      renderGoals();
+    }
+
+    function addDashboardGoal() {
+      const titleEl = document.getElementById('newGoalTitle');
+      const subEl = document.getElementById('newGoalSubject');
+      if (!titleEl.value.trim()) return;
+      goals.unshift({
+        id: Date.now(),
+        title: titleEl.value.trim(),
+        subject: subEl.value.trim() || 'General',
+        duration: '40m',
+        priority: 'High',
+        completed: false
+      });
+      titleEl.value = '';
+      saveState();
+      renderGoals();
+    }
+
+    function startGoalFocus(title) {
+      switchTab('focus');
+      setWebTimer(25, 'Focusing: ' + title);
+    }
+
+    function renderRoutine() {
+      const container = document.getElementById('routineListContainer');
+      container.innerHTML = routine.map(r => `
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span class="text-xs font-bold text-blue-600 dark:text-blue-400">${r.slot}</span>
+            <div class="font-bold text-sm mt-0.5">${r.title}</div>
+          </div>
+          <button onclick="rescheduleSlot(${r.id})" class="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">
+            🔄 Missed? Smart Reschedule
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function rescheduleSlot(id) {
+      routine = routine.map(r => r.id === id ? { ...r, slot: 'Rescheduled → Tomorrow 05:00 PM Priority Buffer' } : r);
+      saveState();
+      renderRoutine();
+    }
+
+    function renderSyllabus() {
+      const container = document.getElementById('syllabusListContainer');
+      const badgeColors = {
+        COMPLETED: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
+        REVISION: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+        DIFFICULT: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
+        PENDING: 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
+      };
+      container.innerHTML = syllabus.map(s => `
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold text-blue-600 dark:text-blue-400">${s.subject} • ${s.unit}</div>
+            <div class="font-bold text-sm mt-0.5">${s.topic}</div>
+          </div>
+          <button onclick="cycleSyllabusStatus(${s.id})" class="px-3 py-1 rounded-lg text-xs font-bold ${badgeColors[s.status] || badgeColors.PENDING}">
+            ${s.status}
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function cycleSyllabusStatus(id) {
+      const order = ['PENDING', 'COMPLETED', 'REVISION', 'DIFFICULT'];
+      syllabus = syllabus.map(s => {
+        if (s.id !== id) return s;
+        const next = order[(order.indexOf(s.status) + 1) % order.length];
+        return { ...s, status: next };
+      });
+      saveState();
+      renderSyllabus();
+    }
+
+    function extractSyllabusTopicsWeb() {
+      const sub = document.getElementById('syllabusSubjectInput').value.trim() || 'Artificial Intelligence';
+      const raw = document.getElementById('syllabusRawInput').value.trim();
+      if (!raw) return;
+      raw.split(',').map(t => t.trim()).filter(Boolean).forEach((t, idx) => {
+        syllabus.unshift({
+          id: Date.now() + idx,
+          subject: sub,
+          unit: 'Extracted Unit',
+          topic: t,
+          status: 'PENDING'
+        });
+      });
+      document.getElementById('syllabusRawInput').value = '';
+      saveState();
+      renderSyllabus();
+    }
+
+    // Focus Timer
+    let timerSeconds = 25 * 60;
+    let timerDefaultSeconds = 25 * 60;
+    let timerInterval = null;
+
+    function updateTimerUi() {
+      const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+      const s = String(timerSeconds % 60).padStart(2, '0');
+      document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+    }
+
+    function setWebTimer(mins, label) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerDefaultSeconds = mins * 60;
+      timerSeconds = timerDefaultSeconds;
+      document.getElementById('timerModeTitle').textContent = label;
+      document.getElementById('timerStartBtn').textContent = '▶ Start Focus';
+      updateTimerUi();
+    }
+
+    function toggleWebTimer() {
+      const btn = document.getElementById('timerStartBtn');
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btn.textContent = '▶ Resume';
+      } else {
+        btn.textContent = '⏸ Pause';
+        timerInterval = setInterval(() => {
+          if (timerSeconds > 0) {
+            timerSeconds--;
+            updateTimerUi();
+          } else {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            btn.textContent = '▶ Start Focus';
+            alert('🎉 Focus Session Complete! Take a 5-minute hydration & stretch break.');
+          }
+        }, 1000);
+      }
+    }
+
+    function resetWebTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerSeconds = timerDefaultSeconds;
+      document.getElementById('timerStartBtn').textContent = '▶ Start Focus';
+      updateTimerUi();
+    }
+
+    // AI Assistant
+    let currentAiMode = 'UNDERSTAND';
+    function setAiMode(mode) {
+      currentAiMode = mode;
+      document.querySelectorAll('.ai-mode-btn').forEach(b => {
+        b.className = 'ai-mode-btn px-3.5 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold';
+      });
+      document.getElementById('aiMode-' + mode).className = 'ai-mode-btn px-3.5 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold';
+      generateAiStudyGuide();
+    }
+
+    function generateAiStudyGuide() {
+      const topic = document.getElementById('aiPromptInput').value.trim() || 'A* Search Algorithm';
+      const box = document.getElementById('aiResponseBox');
+      if (currentAiMode === 'UNDERSTAND') {
+        box.textContent = `📘 CONCEPT BREAKDOWN: ${topic}\n\n1. Simple Intuition:\n${topic} evaluates paths by combining the exact cost already travelled g(n) and an estimated heuristic cost to the goal h(n): f(n) = g(n) + h(n).\n\n2. Real-World Analogy:\nImagine using Google Maps: g(n) is the distance you have already driven, and h(n) is the straight-line air distance remaining to your college.\n\n3. Key Exam Rule:\nIf the heuristic h(n) never overestimates the true cost (Admissible), ${topic} is guaranteed to find the optimal shortest path.`;
+      } else if (currentAiMode === 'PRACTICE') {
+        box.textContent = `📝 PRACTICE QUESTIONS: ${topic}\n\nQ1 (MCQ): When is A* Search guaranteed to be optimal on a tree search?\nA) When h(n) is admissible (never overestimates)\nB) When g(n) = 0\nC) When branching factor is infinite\n✅ Correct Answer: A\n\nQ2 (Short Viva Question): What happens if h(n) = 0 for all nodes in ${topic}?\n💡 Answer: A* Search degrades into Uniform Cost Search (Dijkstra's Algorithm).`;
+      } else {
+        box.textContent = `⚡ LAST-MINUTE REVISION SHEET: ${topic}\n\n• Formula: f(n) = g(n) + h(n)\n• Completeness: Yes (if branching factor is finite & step costs > 0)\n• Time Complexity: O(b^d) in worst case, dramatically reduced by a tight heuristic\n• Common Exam Pitfall: Always verify h(n) ≤ h*(n) before claiming optimality in numerical problems!`;
+      }
+    }
+
+    function switchTab(tab) {
+      ['dashboard', 'planner', 'syllabus', 'focus', 'ai'].forEach(t => {
+        document.getElementById('tab-' + t).classList.add('hidden');
+        const btn = document.getElementById('tabBtn-' + t);
+        btn.className = 'tab-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap';
+      });
+      document.getElementById('tab-' + tab).classList.remove('hidden');
+      document.getElementById('tabBtn-' + tab).className = 'tab-btn flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold text-sm bg-blue-600 text-white whitespace-nowrap';
+    }
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    function exportStudyDataJson() {
+      const data = { goals, routine, syllabus, exportedAt: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'study-buddy-backup.json';
+      a.click();
+    }
+
+    function showAuthenticatedWorkspace(phone) {
+      document.getElementById('verifiedPhoneBadge').textContent = 'Verified: ' + phone;
+      document.getElementById('authView').classList.add('hidden');
+      document.getElementById('appView').classList.remove('hidden');
+      renderGoals();
+      renderRoutine();
+      renderSyllabus();
+      generateAiStudyGuide();
+    }
+
+    // Auto-restore session if mobile number was already verified
+    const savedPhone = localStorage.getItem('study_buddy_verified_mobile');
+    if (savedPhone) {
+      showAuthenticatedWorkspace(savedPhone);
+    }
+  </script>
+</body>
+</html>
