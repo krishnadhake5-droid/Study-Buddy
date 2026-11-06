@@ -1,0 +1,6 @@
+{
+  "name": "Study Buddy",
+  "description": "An AI-powered student productivity and smart learning companion for daily planning, syllabus management, digital distraction control, and exam readiness.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

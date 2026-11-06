@@ -1,0 +1,265 @@
+{
+  "entities": {
+    "StudentProfile": {
+      "title": "StudentProfile",
+      "description": "Stores a student's onboarding survey responses, academic details, daily schedule preferences, and cumulative focus stats.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Authenticated user UID" },
+        "studentName": { "type": "string", "description": "Full name of the student" },
+        "gradeOrDegree": { "type": "string", "description": "Class, year, or degree program" },
+        "institutionName": { "type": "string", "description": "School or college name" },
+        "streamOrBranch": { "type": "string", "description": "Educational stream or branch" },
+        "semester": { "type": "string", "description": "Current semester or term" },
+        "subjectsCsv": { "type": "string", "description": "Comma-separated list of subjects" },
+        "difficultSubjectsCsv": { "type": "string", "description": "Comma-separated list of difficult subjects needing focus" },
+        "examStartDate": { "type": "string", "description": "Target examination start date (YYYY-MM-DD)" },
+        "preferredLanguage": { "type": "string", "description": "Preferred study explanation language" },
+        "wakeUpTime": { "type": "string", "description": "Usual wake up time" },
+        "sleepTime": { "type": "string", "description": "Usual bedtime" },
+        "collegeTiming": { "type": "string", "description": "School or college daily hours" },
+        "travelMinutes": { "type": "integer", "description": "Daily commute duration in minutes" },
+        "hasCoaching": { "type": "boolean", "description": "Whether student attends coaching or tuition" },
+        "dailyStudyHours": { "type": "integer", "description": "Realistic daily self-study hours" },
+        "preferredStudySlot": { "type": "string", "enum": ["MORNING", "AFTERNOON", "EVENING", "NIGHT"], "description": "Peak focus time window" },
+        "socialMediaMinutes": { "type": "integer", "description": "Current daily social media/gaming usage in minutes" },
+        "sessionLengthMinutes": { "type": "integer", "description": "Preferred focus session duration in minutes" },
+        "breakLengthMinutes": { "type": "integer", "description": "Preferred short break duration in minutes" },
+        "napPreference": { "type": "boolean", "description": "Whether student prefers an afternoon power nap" },
+        "onboardingCompleted": { "type": "boolean", "description": "Whether personalized onboarding is completed" },
+        "streakDays": { "type": "integer", "description": "Current consecutive study streak days" },
+        "totalFocusMinutes": { "type": "integer", "description": "Cumulative focused study minutes" },
+        "focusSessionsCompleted": { "type": "integer", "description": "Total completed focus timer sessions" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": [
+        "userId",
+        "studentName",
+        "gradeOrDegree",
+        "institutionName",
+        "streamOrBranch",
+        "semester",
+        "subjectsCsv",
+        "difficultSubjectsCsv",
+        "examStartDate",
+        "preferredLanguage",
+        "wakeUpTime",
+        "sleepTime",
+        "collegeTiming",
+        "travelMinutes",
+        "hasCoaching",
+        "dailyStudyHours",
+        "preferredStudySlot",
+        "socialMediaMinutes",
+        "sessionLengthMinutes",
+        "breakLengthMinutes",
+        "napPreference",
+        "onboardingCompleted",
+        "streakDays",
+        "totalFocusMinutes",
+        "focusSessionsCompleted",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AcademicTask": {
+      "title": "AcademicTask",
+      "description": "Represents a daily academic goal, scheduled timetable block, or student to-do item.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID" },
+        "title": { "type": "string", "description": "Task or schedule block title" },
+        "subject": { "type": "string", "description": "Associated academic subject" },
+        "chapterOrTopic": { "type": "string", "description": "Specific chapter, topic, or activity note" },
+        "category": { "type": "string", "enum": ["GOAL", "ROUTINE", "TODO"], "description": "Task classification" },
+        "timeSlot": { "type": "string", "description": "Scheduled time window (e.g., 05:00 PM - 05:45 PM)" },
+        "durationMinutes": { "type": "integer", "description": "Estimated duration in minutes" },
+        "priority": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"], "description": "Priority level" },
+        "completed": { "type": "boolean", "description": "Completion state" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": [
+        "userId",
+        "title",
+        "subject",
+        "chapterOrTopic",
+        "category",
+        "timeSlot",
+        "durationMinutes",
+        "priority",
+        "completed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SyllabusTopic": {
+      "title": "SyllabusTopic",
+      "description": "Represents an individual syllabus topic organized by subject, unit, and chapter.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID" },
+        "subject": { "type": "string", "description": "Subject name" },
+        "unitName": { "type": "string", "description": "Unit title (e.g., Unit 1 - Introduction)" },
+        "chapterName": { "type": "string", "description": "Chapter name" },
+        "topicTitle": { "type": "string", "description": "Specific syllabus topic" },
+        "status": { "type": "string", "enum": ["NOT_STARTED", "STUDYING", "COMPLETED", "NEEDS_REVISION"], "description": "Current learning status" },
+        "difficulty": { "type": "string", "enum": ["EASY", "MEDIUM", "HARD"], "description": "Topic difficulty rating" },
+        "revisionCount": { "type": "integer", "description": "Number of revisions completed" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": [
+        "userId",
+        "subject",
+        "unitName",
+        "chapterName",
+        "topicTitle",
+        "status",
+        "difficulty",
+        "revisionCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AcademicDeadline": {
+      "title": "AcademicDeadline",
+      "description": "Represents an assignment, exam, project, practical submission, or presentation deadline.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID" },
+        "title": { "type": "string", "description": "Deadline title" },
+        "subject": { "type": "string", "description": "Subject name" },
+        "type": { "type": "string", "enum": ["ASSIGNMENT", "EXAM", "PROJECT", "PRACTICAL", "PRESENTATION", "TEST"], "description": "Deadline category" },
+        "dueDateLabel": { "type": "string", "description": "Formatted due date (YYYY-MM-DD)" },
+        "daysRemaining": { "type": "integer", "description": "Days remaining until deadline" },
+        "priority": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"], "description": "Urgency priority" },
+        "completed": { "type": "boolean", "description": "Whether submission/exam prep is done" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": [
+        "userId",
+        "title",
+        "subject",
+        "type",
+        "dueDateLabel",
+        "daysRemaining",
+        "priority",
+        "completed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StudyNote": {
+      "title": "StudyNote",
+      "description": "Stores subject-wise smart notes, uploaded study resource summaries, flashcards, attendance records, and daily reflections.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID" },
+        "title": { "type": "string", "description": "Note or entry title" },
+        "subject": { "type": "string", "description": "Subject name" },
+        "content": { "type": "string", "description": "Body content, flashcards, or reflection answers" },
+        "noteType": { "type": "string", "enum": ["NOTE", "RESOURCE", "FLASHCARD", "REFLECTION", "ATTENDANCE"], "description": "Entry type" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": [
+        "userId",
+        "title",
+        "subject",
+        "content",
+        "noteType",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AppUsageLimit": {
+      "title": "AppUsageLimit",
+      "description": "Configures daily usage limits and focus restrictions for distracting applications.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID" },
+        "appName": { "type": "string", "description": "Display name of the distracting app" },
+        "packageName": { "type": "string", "description": "Android package name" },
+        "category": { "type": "string", "description": "App category (Social, Video, Games)" },
+        "dailyLimitMinutes": { "type": "integer", "description": "Daily allowed limit in minutes" },
+        "usedTodayMinutes": { "type": "integer", "description": "Tracked or logged minutes used today" },
+        "entertainmentWindow": { "type": "string", "description": "Scheduled entertainment window (e.g., 8:00 PM - 9:00 PM)" },
+        "restrictedInFocus": { "type": "boolean", "description": "Whether blocked/muted during Smart Focus Mode" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": [
+        "userId",
+        "appName",
+        "packageName",
+        "category",
+        "dailyLimitMinutes",
+        "usedTodayMinutes",
+        "entertainmentWindow",
+        "restrictedInFocus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PeerStudyGroup": {
+      "title": "PeerStudyGroup",
+      "description": "Shared subject-based peer study group for collaborative learning.",
+      "type": "object",
+      "properties": {
+        "creatorId": { "type": "string", "description": "Creator user UID" },
+        "creatorName": { "type": "string", "description": "Creator student name" },
+        "groupName": { "type": "string", "description": "Study group name" },
+        "subject": { "type": "string", "description": "Focus academic subject" },
+        "activeTopic": { "type": "string", "description": "Current discussion or revision topic" },
+        "memberCount": { "type": "integer", "description": "Number of students in the group" },
+        "visibility": { "type": "string", "enum": ["PUBLIC"], "description": "Group visibility for query filtering" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": [
+        "creatorId",
+        "creatorName",
+        "groupName",
+        "subject",
+        "activeTopic",
+        "memberCount",
+        "visibility",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/StudentProfile" },
+      "description": "Per-student profile, onboarding preferences, and focus statistics"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/AcademicTask" },
+      "description": "Per-student daily academic goals, personalized routine items, and to-dos"
+    },
+    "/users/{userId}/topics/{topicId}": {
+      "schema": { "$ref": "#/entities/SyllabusTopic" },
+      "description": "Per-student syllabus units, chapters, and topics with completion status"
+    },
+    "/users/{userId}/deadlines/{deadlineId}": {
+      "schema": { "$ref": "#/entities/AcademicDeadline" },
+      "description": "Per-student assignments, exams, and academic deadlines"
+    },
+    "/users/{userId}/notes/{noteId}": {
+      "schema": { "$ref": "#/entities/StudyNote" },
+      "description": "Per-student smart notes, flashcards, attendance logs, and daily reflections"
+    },
+    "/users/{userId}/app_limits/{limitId}": {
+      "schema": { "$ref": "#/entities/AppUsageLimit" },
+      "description": "Per-student digital discipline app usage limits and focus restrictions"
+    },
+    "/study_groups/{groupId}": {
+      "schema": { "$ref": "#/entities/PeerStudyGroup" },
+      "description": "Collaborative peer study groups across students"
+    }
+  }
+}

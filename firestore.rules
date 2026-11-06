@@ -1,0 +1,380 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Default-Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 1. StudentProfile Validation Helper
+    function isValidStudentProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 100 &&
+             data.gradeOrDegree is string && data.gradeOrDegree.size() >= 1 && data.gradeOrDegree.size() <= 100 &&
+             data.institutionName is string && data.institutionName.size() <= 150 &&
+             data.streamOrBranch is string && data.streamOrBranch.size() <= 100 &&
+             data.semester is string && data.semester.size() <= 60 &&
+             data.subjectsCsv is string && data.subjectsCsv.size() >= 1 && data.subjectsCsv.size() <= 1000 &&
+             data.difficultSubjectsCsv is string && data.difficultSubjectsCsv.size() <= 1000 &&
+             data.examStartDate is string && data.examStartDate.size() >= 1 && data.examStartDate.size() <= 40 &&
+             data.preferredLanguage is string && data.preferredLanguage.size() >= 1 && data.preferredLanguage.size() <= 60 &&
+             data.wakeUpTime is string && data.wakeUpTime.size() >= 1 && data.wakeUpTime.size() <= 40 &&
+             data.sleepTime is string && data.sleepTime.size() >= 1 && data.sleepTime.size() <= 40 &&
+             data.collegeTiming is string && data.collegeTiming.size() >= 1 && data.collegeTiming.size() <= 80 &&
+             data.travelMinutes is int && data.travelMinutes >= 0 && data.travelMinutes <= 480 &&
+             data.hasCoaching is bool &&
+             data.dailyStudyHours is int && data.dailyStudyHours >= 1 && data.dailyStudyHours <= 16 &&
+             data.preferredStudySlot in ['MORNING', 'AFTERNOON', 'EVENING', 'NIGHT'] &&
+             data.socialMediaMinutes is int && data.socialMediaMinutes >= 0 && data.socialMediaMinutes <= 720 &&
+             data.sessionLengthMinutes is int && data.sessionLengthMinutes >= 15 && data.sessionLengthMinutes <= 180 &&
+             data.breakLengthMinutes is int && data.breakLengthMinutes >= 5 && data.breakLengthMinutes <= 60 &&
+             data.napPreference is bool &&
+             data.onboardingCompleted is bool &&
+             data.streakDays is int && data.streakDays >= 0 && data.streakDays <= 3650 &&
+             data.totalFocusMinutes is int && data.totalFocusMinutes >= 0 && data.totalFocusMinutes <= 1000000 &&
+             data.focusSessionsCompleted is int && data.focusSessionsCompleted >= 0 && data.focusSessionsCompleted <= 100000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 2. AcademicTask Validation Helper
+    function isValidAcademicTask(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 100 &&
+             data.chapterOrTopic is string && data.chapterOrTopic.size() <= 200 &&
+             data.category in ['GOAL', 'ROUTINE', 'TODO'] &&
+             data.timeSlot is string && data.timeSlot.size() <= 80 &&
+             data.durationMinutes is int && data.durationMinutes >= 1 && data.durationMinutes <= 480 &&
+             data.priority in ['HIGH', 'MEDIUM', 'LOW'] &&
+             data.completed is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 3. SyllabusTopic Validation Helper
+    function isValidSyllabusTopic(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 100 &&
+             data.unitName is string && data.unitName.size() >= 1 && data.unitName.size() <= 120 &&
+             data.chapterName is string && data.chapterName.size() >= 1 && data.chapterName.size() <= 150 &&
+             data.topicTitle is string && data.topicTitle.size() >= 1 && data.topicTitle.size() <= 200 &&
+             data.status in ['NOT_STARTED', 'STUDYING', 'COMPLETED', 'NEEDS_REVISION'] &&
+             data.difficulty in ['EASY', 'MEDIUM', 'HARD'] &&
+             data.revisionCount is int && data.revisionCount >= 0 && data.revisionCount <= 100 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 4. AcademicDeadline Validation Helper
+    function isValidAcademicDeadline(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 100 &&
+             data.type in ['ASSIGNMENT', 'EXAM', 'PROJECT', 'PRACTICAL', 'PRESENTATION', 'TEST'] &&
+             data.dueDateLabel is string && data.dueDateLabel.size() >= 1 && data.dueDateLabel.size() <= 60 &&
+             data.daysRemaining is int && data.daysRemaining >= 0 && data.daysRemaining <= 365 &&
+             data.priority in ['HIGH', 'MEDIUM', 'LOW'] &&
+             data.completed is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 5. StudyNote Validation Helper
+    function isValidStudyNote(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 100 &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 5000 &&
+             data.noteType in ['NOTE', 'RESOURCE', 'FLASHCARD', 'REFLECTION', 'ATTENDANCE'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 6. AppUsageLimit Validation Helper
+    function isValidAppUsageLimit(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.appName is string && data.appName.size() >= 1 && data.appName.size() <= 100 &&
+             data.packageName is string && data.packageName.size() >= 1 && data.packageName.size() <= 150 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+             data.dailyLimitMinutes is int && data.dailyLimitMinutes >= 5 && data.dailyLimitMinutes <= 480 &&
+             data.usedTodayMinutes is int && data.usedTodayMinutes >= 0 && data.usedTodayMinutes <= 1440 &&
+             data.entertainmentWindow is string && data.entertainmentWindow.size() <= 80 &&
+             data.restrictedInFocus is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 7. PeerStudyGroup Validation Helper
+    function isValidPeerStudyGroup(data) {
+      return data.creatorId is string && data.creatorId.size() >= 1 && data.creatorId.size() <= 128 &&
+             data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 100 &&
+             data.groupName is string && data.groupName.size() >= 1 && data.groupName.size() <= 120 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 100 &&
+             data.activeTopic is string && data.activeTopic.size() >= 1 && data.activeTopic.size() <= 200 &&
+             data.memberCount is int && data.memberCount >= 1 && data.memberCount <= 500 &&
+             data.visibility == 'PUBLIC' &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Collection 1: /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidStudentProfile(incoming()) &&
+                       incoming().keys().hasAll([
+                         'userId', 'studentName', 'gradeOrDegree', 'institutionName',
+                         'streamOrBranch', 'semester', 'subjectsCsv', 'difficultSubjectsCsv',
+                         'examStartDate', 'preferredLanguage', 'wakeUpTime', 'sleepTime',
+                         'collegeTiming', 'travelMinutes', 'hasCoaching', 'dailyStudyHours',
+                         'preferredStudySlot', 'socialMediaMinutes', 'sessionLengthMinutes',
+                         'breakLengthMinutes', 'napPreference', 'onboardingCompleted',
+                         'streakDays', 'totalFocusMinutes', 'focusSessionsCompleted',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'studentName', 'gradeOrDegree', 'institutionName',
+                         'streamOrBranch', 'semester', 'subjectsCsv', 'difficultSubjectsCsv',
+                         'examStartDate', 'preferredLanguage', 'wakeUpTime', 'sleepTime',
+                         'collegeTiming', 'travelMinutes', 'hasCoaching', 'dailyStudyHours',
+                         'preferredStudySlot', 'socialMediaMinutes', 'sessionLengthMinutes',
+                         'breakLengthMinutes', 'napPreference', 'onboardingCompleted',
+                         'streakDays', 'totalFocusMinutes', 'focusSessionsCompleted',
+                         'createdAt', 'updatedAt'
+                       ]);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidStudentProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'studentName', 'gradeOrDegree', 'institutionName',
+                         'streamOrBranch', 'semester', 'subjectsCsv', 'difficultSubjectsCsv',
+                         'examStartDate', 'preferredLanguage', 'wakeUpTime', 'sleepTime',
+                         'collegeTiming', 'travelMinutes', 'hasCoaching', 'dailyStudyHours',
+                         'preferredStudySlot', 'socialMediaMinutes', 'sessionLengthMinutes',
+                         'breakLengthMinutes', 'napPreference', 'onboardingCompleted',
+                         'streakDays', 'totalFocusMinutes', 'focusSessionsCompleted',
+                         'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Subcollection 2: /users/{userId}/tasks/{taskId}
+      match /tasks/{taskId} {
+        allow get: if isOwner(userId) && isValidId(taskId) && existing().userId == request.auth.uid;
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         isValidAcademicTask(incoming()) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'subject', 'chapterOrTopic', 'category',
+                           'timeSlot', 'durationMinutes', 'priority', 'completed',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'subject', 'chapterOrTopic', 'category',
+                           'timeSlot', 'durationMinutes', 'priority', 'completed',
+                           'createdAt', 'updatedAt'
+                         ]);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         isValidAcademicTask(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'subject', 'chapterOrTopic', 'category',
+                           'timeSlot', 'durationMinutes', 'priority', 'completed', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(taskId) && existing().userId == request.auth.uid;
+      }
+
+      // Subcollection 3: /users/{userId}/topics/{topicId}
+      match /topics/{topicId} {
+        allow get: if isOwner(userId) && isValidId(topicId) && existing().userId == request.auth.uid;
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+                         isValidId(topicId) &&
+                         isValidSyllabusTopic(incoming()) &&
+                         incoming().keys().hasAll([
+                           'userId', 'subject', 'unitName', 'chapterName', 'topicTitle',
+                           'status', 'difficulty', 'revisionCount', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'subject', 'unitName', 'chapterName', 'topicTitle',
+                           'status', 'difficulty', 'revisionCount', 'createdAt', 'updatedAt'
+                         ]);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(topicId) &&
+                         isValidSyllabusTopic(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'subject', 'unitName', 'chapterName', 'topicTitle',
+                           'status', 'difficulty', 'revisionCount', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(topicId) && existing().userId == request.auth.uid;
+      }
+
+      // Subcollection 4: /users/{userId}/deadlines/{deadlineId}
+      match /deadlines/{deadlineId} {
+        allow get: if isOwner(userId) && isValidId(deadlineId) && existing().userId == request.auth.uid;
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+                         isValidId(deadlineId) &&
+                         isValidAcademicDeadline(incoming()) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'subject', 'type', 'dueDateLabel',
+                           'daysRemaining', 'priority', 'completed', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'subject', 'type', 'dueDateLabel',
+                           'daysRemaining', 'priority', 'completed', 'createdAt', 'updatedAt'
+                         ]);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(deadlineId) &&
+                         isValidAcademicDeadline(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'subject', 'type', 'dueDateLabel',
+                           'daysRemaining', 'priority', 'completed', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(deadlineId) && existing().userId == request.auth.uid;
+      }
+
+      // Subcollection 5: /users/{userId}/notes/{noteId}
+      match /notes/{noteId} {
+        allow get: if isOwner(userId) && isValidId(noteId) && existing().userId == request.auth.uid;
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+                         isValidId(noteId) &&
+                         isValidStudyNote(incoming()) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'subject', 'content', 'noteType',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'subject', 'content', 'noteType',
+                           'createdAt', 'updatedAt'
+                         ]);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(noteId) &&
+                         isValidStudyNote(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'subject', 'content', 'noteType', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(noteId) && existing().userId == request.auth.uid;
+      }
+
+      // Subcollection 6: /users/{userId}/app_limits/{limitId}
+      match /app_limits/{limitId} {
+        allow get: if isOwner(userId) && isValidId(limitId) && existing().userId == request.auth.uid;
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+                         isValidId(limitId) &&
+                         isValidAppUsageLimit(incoming()) &&
+                         incoming().keys().hasAll([
+                           'userId', 'appName', 'packageName', 'category',
+                           'dailyLimitMinutes', 'usedTodayMinutes', 'entertainmentWindow',
+                           'restrictedInFocus', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'appName', 'packageName', 'category',
+                           'dailyLimitMinutes', 'usedTodayMinutes', 'entertainmentWindow',
+                           'restrictedInFocus', 'createdAt', 'updatedAt'
+                         ]);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(limitId) &&
+                         isValidAppUsageLimit(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'appName', 'packageName', 'category',
+                           'dailyLimitMinutes', 'usedTodayMinutes', 'entertainmentWindow',
+                           'restrictedInFocus', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(limitId) && existing().userId == request.auth.uid;
+      }
+    }
+
+    // Collection 7: /study_groups/{groupId}
+    match /study_groups/{groupId} {
+      allow get: if isSignedIn() && isValidId(groupId) && existing().visibility == 'PUBLIC';
+      allow list: if isSignedIn() && existing().visibility == 'PUBLIC';
+
+      allow create: if isSignedIn() &&
+                       isValidId(groupId) &&
+                       isValidPeerStudyGroup(incoming()) &&
+                       incoming().creatorId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'creatorId', 'creatorName', 'groupName', 'subject',
+                         'activeTopic', 'memberCount', 'visibility', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'creatorId', 'creatorName', 'groupName', 'subject',
+                         'activeTopic', 'memberCount', 'visibility', 'createdAt', 'updatedAt'
+                       ]);
+
+      allow update: if isSignedIn() &&
+                       isValidId(groupId) &&
+                       isValidPeerStudyGroup(incoming()) &&
+                       incoming().creatorId == existing().creatorId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().visibility == existing().visibility &&
+                       (
+                         // Action 1: Creator updates topic or group info
+                         (existing().creatorId == request.auth.uid &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['groupName', 'subject', 'activeTopic', 'memberCount', 'updatedAt'])) ||
+                         // Action 2: Any authenticated student joins or updates active study topic
+                         (incoming().diff(existing()).affectedKeys().hasOnly(['memberCount', 'activeTopic', 'updatedAt']))
+                       );
+
+      allow delete: if isSignedIn() && isValidId(groupId) && existing().creatorId == request.auth.uid;
+    }
+  }
+}
